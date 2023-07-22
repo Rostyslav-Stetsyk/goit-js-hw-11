@@ -6,7 +6,8 @@ import "simplelightbox/dist/simple-lightbox.min.css";
 const refs = {
   searchInput: document.querySelector('.search-form'),
   gallery: document.querySelector('.gallery'),
-  loadMore: document.querySelector('.load-more')
+  loadMore: document.querySelector('.load-more'),
+  loader: document.querySelector('.loader')
 };
 
 let counter = 1;
@@ -25,10 +26,13 @@ async function onSearch(e) {
   e.preventDefault()
   searchQuery = e.currentTarget.searchQuery.value.replaceAll(' ', '+');
   counter = 1;
+  refs.gallery.innerHTML = '';
 
   try {
+    refs.loader.style.display = 'inline-block';
     const resp = await searchByQuery(searchQuery, counter);
     const totalHits = resp.data.totalHits;
+    
 
     if (!totalHits) {
       throw new Error('Sorry, there are no images matching your search query. Please try again.');
@@ -37,11 +41,12 @@ async function onSearch(e) {
     Notify.info(`Hooray! We found ${totalHits} images.`);
 
     const cardsMarkup = resp.data.hits.map(createCardMarkup).join('');
-    refs.gallery.innerHTML = cardsMarkup;
+    refs.gallery.insertAdjacentHTML('beforeend', cardsMarkup);
   } catch (err) {
     Notify.warning(err.message);
     return;
   }
+  refs.loader.style.display = 'none';
 
   counter = 1;
   refs.loadMore.addEventListener('click', onLoadMore);
@@ -53,8 +58,10 @@ async function onSearch(e) {
 async function onLoadMore(entries) {
   if (entries[0].intersectionRatio <= 0) return;
   counter += 1;
+  refs.loadMore.style.display = 'none';
 
   try {
+    refs.loader.style.display = 'inline-block';
     const resp = await searchByQuery(searchQuery, counter);
     const cardsMarkup = resp.data.hits.map(createCardMarkup).join('');
 
@@ -69,10 +76,10 @@ async function onLoadMore(entries) {
     return;
   }
 
+  refs.loadMore.style.display = 'block';
   lightbox.refresh();
 
-  // Мені не сподобалось як це працює з infinity scroll, але розібрався)
-  // smoothScroll()
+  smoothScroll()
 }
 
 const lightbox = new SimpleLightbox('.gallery a',({showCounter: false}))
@@ -103,7 +110,7 @@ function smoothScroll() {
   .firstElementChild.getBoundingClientRect();
 
   window.scrollBy({
-    top: cardHeight * 2,
+    top: cardHeight,
     behavior: "smooth",
   });
 }
