@@ -24,6 +24,7 @@ const observer = new IntersectionObserver(onLoadMore, options);
 
 async function onSearch(e) {
   e.preventDefault()
+  observer.unobserve(refs.loadMore);
   searchQuery = e.currentTarget.searchQuery.value.replaceAll(' ', '+');
   counter = 1;
   refs.gallery.innerHTML = '';
@@ -44,6 +45,7 @@ async function onSearch(e) {
     refs.gallery.insertAdjacentHTML('beforeend', cardsMarkup);
   } catch (err) {
     Notify.warning(err.message);
+    refs.loader.style.display = 'none';
     return;
   }
   refs.loader.style.display = 'none';
@@ -64,19 +66,20 @@ async function onLoadMore(entries) {
     refs.loader.style.display = 'inline-block';
     const resp = await searchByQuery(searchQuery, counter);
     const cardsMarkup = resp.data.hits.map(createCardMarkup).join('');
+    refs.gallery.insertAdjacentHTML('beforeend', cardsMarkup);
+    refs.loadMore.style.display = 'block';
 
     if (counter*40 >= resp.data.totalHits) {
       throw new Error(`We're sorry, but you've reached the end of search results.`);
     };
-
-    refs.gallery.insertAdjacentHTML('beforeend', cardsMarkup);
   } catch (err) {
     Notify.warning(`${err.message}`);
-    observer.unobserve(entries[0].target)
+    observer.unobserve(entries[0].target);
+    refs.loader.style.display = 'none';
+    refs.loadMore.style.display = 'block';
     return;
   }
 
-  refs.loadMore.style.display = 'block';
   lightbox.refresh();
 
   smoothScroll()
